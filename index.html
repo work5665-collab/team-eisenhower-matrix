@@ -17,24 +17,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-
-        header {
-            background-color: var(--surface); border-bottom: 1px solid var(--border);
-            padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between;
-        }
-        .logo { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
-
-        nav { display: flex; gap: 6px; }
-        .nav-tab {
-            background: transparent; border: none; color: var(--text-sub); padding: 8px 14px;
-            font-size: 0.85rem; font-weight: 700; border-radius: var(--radius); cursor: pointer;
-        }
-        .nav-tab.active { background-color: var(--primary); color: #fff; }
-
-        main { flex: 1; padding: 1.5rem; max-width: 1400px; width: 100%; margin: 0 auto; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 2rem; }
 
         .matrix-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; min-height: 600px; }
 
@@ -46,15 +29,33 @@
         .column-count { background: var(--surface-card); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
 
         .card-container {
-            flex: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: 8px; border: 2px dashed transparent; border-radius: var(--radius);
+            flex: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: 8px; border: 2px dashed transparent; border-radius: var(--radius); min-height: 150px;
         }
-        .card-container.drag-over { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.1); }
+        .card-container.hovered { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.1); }
 
         .card {
             background-color: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius);
             padding: 0.85rem; cursor: grab; user-select: none; display: flex; flex-direction: column; gap: 6px;
+            touch-action: none; /* 터치 및 마우스 드래그 간섭 방지 */
         }
-        .card * { pointer-events: none; } /* [핵심!] 카드 내부 자식 요소를 이벤트 대상에서 제외하여 드래그 씹힘 방지 */
+        
+        /* 드래그 중인 카드의 스타일 */
+        .card.is-dragging {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.9;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transform: scale(1.02);
+        }
+
+        .card-placeholder {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            height: 80px;
+        }
+
         .card-badge { align-self: flex-start; background: var(--primary); color: white; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
         .card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
         .card-meta { font-size: 0.75rem; color: var(--text-sub); display: flex; justify-content: space-between; }
@@ -62,39 +63,27 @@
 </head>
 <body>
 
-    <header>
-        <div class="logo">⚡ COMMAND CENTER</div>
-        <nav>
-            <button class="nav-tab active" onclick="switchTab('tab-2')">아이젠하워 매트릭스</button>
-        </nav>
-    </header>
-
-    <main>
-        <div id="tab-2" class="tab-content active">
-            <h2 style="margin-bottom:1rem;">🎯 아이젠하워 매트릭스</h2>
-            <div class="matrix-grid">
-                <div class="column">
-                    <div class="column-header">🔥 1사분면 (긴급/중요)<span class="column-count" id="cnt-Q1">0</span></div>
-                    <div class="card-container" id="Q1" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'Q1')"></div>
-                </div>
-                <div class="column">
-                    <div class="column-header">🎯 2사분면 (계획/시스템)<span class="column-count" id="cnt-Q2">0</span></div>
-                    <div class="card-container" id="Q2" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'Q2')"></div>
-                </div>
-                <div class="column">
-                    <div class="column-header">🤝 3사분면 (위임/지원)<span class="column-count" id="cnt-Q3">0</span></div>
-                    <div class="card-container" id="Q3" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'Q3')"></div>
-                </div>
-                <div class="column">
-                    <div class="column-header">🧹 4사분면 (정리/최소화)<span class="column-count" id="cnt-Q4">0</span></div>
-                    <div class="card-container" id="Q4" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'Q4')"></div>
-                </div>
-            </div>
+    <h2 style="margin-bottom:1rem;">🎯 아이젠하워 매트릭스</h2>
+    <div class="matrix-grid">
+        <div class="column">
+            <div class="column-header">🔥 1사분면 (긴급/중요)<span class="column-count" id="cnt-Q1">0</span></div>
+            <div class="card-container" id="Q1"></div>
         </div>
-    </main>
+        <div class="column">
+            <div class="column-header">🎯 2사분면 (계획/시스템)<span class="column-count" id="cnt-Q2">0</span></div>
+            <div class="card-container" id="Q2"></div>
+        </div>
+        <div class="column">
+            <div class="column-header">🤝 3사분면 (위임/지원)<span class="column-count" id="cnt-Q3">0</span></div>
+            <div class="card-container" id="Q3"></div>
+        </div>
+        <div class="column">
+            <div class="column-header">🧹 4사분면 (정리/최소화)<span class="column-count" id="cnt-Q4">0</span></div>
+            <div class="card-container" id="Q4"></div>
+        </div>
+    </div>
 
     <script>
-        // 초기 데이터 샘플
         let cards = [
             {
                 id: 'c-1',
@@ -105,47 +94,14 @@
             }
         ];
 
-        let draggedId = null;
-
-        function onDragStart(e, id) {
-            draggedId = id;
-            e.dataTransfer.setData('text/plain', id);
-        }
-
-        function onDragOver(e) {
-            e.preventDefault(); // 필수: 브라우저 기본 거부 동작 방지
-            e.currentTarget.classList.add('drag-over');
-        }
-
-        function onDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        function onDrop(e, targetQ) {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
-
-            if (!draggedId) return;
-
-            // 데이터의 matrix 값 변경
-            const card = cards.find(c => c.id === draggedId);
-            if (card) {
-                card.matrix = targetQ;
-            }
-            
-            draggedId = null;
-            render(); // 변경된 데이터 기준으로 화면 재배치
-        }
-
         function render() {
             ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
                 const box = document.getElementById(q);
                 const list = cards.filter(c => c.matrix === q);
-                
                 document.getElementById(`cnt-${q}`).innerText = list.length;
                 
                 box.innerHTML = list.map(c => `
-                    <div class="card" draggable="true" ondragstart="onDragStart(event, '${c.id}')">
+                    <div class="card" data-id="${c.id}">
                         <span class="card-badge">TODO</span>
                         <div class="card-title">${c.title}</div>
                         <div class="card-meta">
@@ -154,6 +110,81 @@
                         </div>
                     </div>
                 `).join('');
+            });
+            
+            initPointerEvents();
+        }
+
+        // 마우스 추적 포인터 로직
+        function initPointerEvents() {
+            const cardEls = document.querySelectorAll('.card');
+
+            cardEls.forEach(card => {
+                card.onpointerdown = function(e) {
+                    const cardId = card.getAttribute('data-id');
+                    const rect = card.getBoundingClientRect();
+                    const shiftX = e.clientX - rect.left;
+                    const shiftY = e.clientY - rect.top;
+
+                    // 이동 중 가짜 고스트 빈박스 생성
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'card-placeholder';
+                    card.parentNode.insertBefore(placeholder, card);
+
+                    // 드래그 레이어 설정
+                    card.classList.add('is-dragging');
+                    card.style.width = rect.width + 'px';
+                    moveAt(e.clientX, e.clientY);
+
+                    function moveAt(pageX, pageY) {
+                        card.style.left = pageX - shiftX + 'px';
+                        card.style.top = pageY - shiftY + 'px';
+                    }
+
+                    function onPointerMove(e) {
+                        moveAt(e.clientX, e.clientY);
+
+                        // 마우스 아래에 어떤 사분면 박스가 있는지 감지
+                        card.style.display = 'none';
+                        const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+                        card.style.display = 'flex';
+
+                        document.querySelectorAll('.card-container').forEach(c => c.classList.remove('hovered'));
+                        if (elemBelow) {
+                            const container = elemBelow.closest('.card-container');
+                            if (container) container.classList.add('hovered');
+                        }
+                    }
+
+                    document.addEventListener('pointermove', onPointerMove);
+
+                    card.onpointerup = function(e) {
+                        document.removeEventListener('pointermove', onPointerMove);
+                        card.onpointerup = null;
+
+                        card.style.display = 'none';
+                        const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+                        card.style.display = 'flex';
+
+                        document.querySelectorAll('.card-container').forEach(c => c.classList.remove('hovered'));
+                        
+                        card.classList.remove('is-dragging');
+                        card.style.left = '';
+                        card.style.top = '';
+                        card.style.width = '';
+                        placeholder.remove();
+
+                        if (elemBelow) {
+                            const targetContainer = elemBelow.closest('.card-container');
+                            if (targetContainer) {
+                                const targetQ = targetContainer.id;
+                                const item = cards.find(c => c.id === cardId);
+                                if (item) item.matrix = targetQ;
+                            }
+                        }
+                        render(); // 위치 확정 후 재배치
+                    };
+                };
             });
         }
 
