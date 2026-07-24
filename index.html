@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>커맨드 센터</title>
+    <!-- 트렐로 방식의 드래그 앤 드롭 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -29,32 +31,18 @@
         .column-count { background: var(--surface-card); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
 
         .card-container {
-            flex: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: 8px; border: 2px dashed transparent; border-radius: var(--radius); min-height: 150px;
+            flex: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: 8px; min-height: 200px;
         }
-        .card-container.hovered { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.1); }
 
         .card {
             background-color: var(--surface-card); border: 1px solid var(--border); border-radius: var(--radius);
             padding: 0.85rem; cursor: grab; user-select: none; display: flex; flex-direction: column; gap: 6px;
-            touch-action: none; /* 터치 및 마우스 드래그 간섭 방지 */
         }
-        
-        /* 드래그 중인 카드의 스타일 */
-        .card.is-dragging {
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-            opacity: 0.9;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            transform: scale(1.02);
-        }
+        .card:active { cursor: grabbing; }
 
-        .card-placeholder {
-            background: rgba(255,255,255,0.05);
-            border: 1px dashed var(--border);
-            border-radius: var(--radius);
-            height: 80px;
-        }
+        /* 드래그 시 트렐로 스타일 placeholder 효과 */
+        .sortable-ghost { opacity: 0.3; border: 2px dashed var(--primary); }
+        .sortable-drag { opacity: 0.9; }
 
         .card-badge { align-self: flex-start; background: var(--primary); color: white; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
         .card-title { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
@@ -111,80 +99,36 @@
                     </div>
                 `).join('');
             });
-            
-            initPointerEvents();
+
+            // 4개 영역에 드래그 엔진 연결
+            initSortable();
         }
 
-        // 마우스 추적 포인터 로직
-        function initPointerEvents() {
-            const cardEls = document.querySelectorAll('.card');
+        function initSortable() {
+            ['Q1', 'Q2', 'Q3', 'Q4'].forEach(qId => {
+                const container = document.getElementById(qId);
+                new Sortable(container, {
+                    group: 'matrix', // 영역 간 이동 허용
+                    animation: 150,  // 이동 애니메이션
+                    onEnd: function (evt) {
+                        const cardId = evt.item.getAttribute('data-id');
+                        const targetQ = evt.to.id;
 
-            cardEls.forEach(card => {
-                card.onpointerdown = function(e) {
-                    const cardId = card.getAttribute('data-id');
-                    const rect = card.getBoundingClientRect();
-                    const shiftX = e.clientX - rect.left;
-                    const shiftY = e.clientY - rect.top;
+                        // 데이터 업데이트
+                        const item = cards.find(c => c.id === cardId);
+                        if (item) item.matrix = targetQ;
 
-                    // 이동 중 가짜 고스트 빈박스 생성
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'card-placeholder';
-                    card.parentNode.insertBefore(placeholder, card);
-
-                    // 드래그 레이어 설정
-                    card.classList.add('is-dragging');
-                    card.style.width = rect.width + 'px';
-                    moveAt(e.clientX, e.clientY);
-
-                    function moveAt(pageX, pageY) {
-                        card.style.left = pageX - shiftX + 'px';
-                        card.style.top = pageY - shiftY + 'px';
+                        // 카운트 수치 재갱신
+                        updateCounts();
                     }
+                });
+            });
+        }
 
-                    function onPointerMove(e) {
-                        moveAt(e.clientX, e.clientY);
-
-                        // 마우스 아래에 어떤 사분면 박스가 있는지 감지
-                        card.style.display = 'none';
-                        const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
-                        card.style.display = 'flex';
-
-                        document.querySelectorAll('.card-container').forEach(c => c.classList.remove('hovered'));
-                        if (elemBelow) {
-                            const container = elemBelow.closest('.card-container');
-                            if (container) container.classList.add('hovered');
-                        }
-                    }
-
-                    document.addEventListener('pointermove', onPointerMove);
-
-                    card.onpointerup = function(e) {
-                        document.removeEventListener('pointermove', onPointerMove);
-                        card.onpointerup = null;
-
-                        card.style.display = 'none';
-                        const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
-                        card.style.display = 'flex';
-
-                        document.querySelectorAll('.card-container').forEach(c => c.classList.remove('hovered'));
-                        
-                        card.classList.remove('is-dragging');
-                        card.style.left = '';
-                        card.style.top = '';
-                        card.style.width = '';
-                        placeholder.remove();
-
-                        if (elemBelow) {
-                            const targetContainer = elemBelow.closest('.card-container');
-                            if (targetContainer) {
-                                const targetQ = targetContainer.id;
-                                const item = cards.find(c => c.id === cardId);
-                                if (item) item.matrix = targetQ;
-                            }
-                        }
-                        render(); // 위치 확정 후 재배치
-                    };
-                };
+        function updateCounts() {
+            ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
+                const container = document.getElementById(q);
+                document.getElementById(`cnt-${q}`).innerText = container.children.length;
             });
         }
 
