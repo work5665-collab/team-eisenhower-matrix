@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>팀 통합 커맨드 센터</title>
+    <!-- 터치 & PC 통합 드래그앤드롭 라이브러리 (SortableJS) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --bg-main: #f8fafc;
@@ -17,7 +19,7 @@
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; touch-action: manipulation; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-main); color: var(--text-primary); display: flex; flex-direction: column; min-height: 100vh; }
 
         header {
@@ -51,7 +53,7 @@
         }
         .btn-add-opt { background: #dbeafe; border: none; border-radius: 4px; padding: 2px 6px; font-size: 0.8rem; cursor: pointer; color: var(--primary); margin-right: 2px; }
 
-        /* 매트릭스 & 칸반 구역 */
+        /* 매트릭스 & 칸반 레이아웃 */
         .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 600px; }
         .grid-4col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; min-height: 600px; }
 
@@ -61,18 +63,19 @@
 
         .drop-zone {
             background: #f1f5f9; border-radius: var(--radius); border: 2px dashed var(--border);
-            padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; min-height: 250px;
+            padding: 1rem; min-height: 250px;
         }
-        .drop-zone.drag-over { background: #e0e7ff; border-color: var(--primary); }
+        .card-list { min-height: 180px; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
 
-        /* 간소화된 슬림 카드 디자인 */
+        /* 간소화된 슬림 카드 */
         .card {
             background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
             padding: 0.75rem 1rem; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,0.04); user-select: none;
-            display: flex; align-items: center; gap: 12px; transition: transform 0.1s, background 0.2s;
+            display: flex; align-items: center; gap: 12px; transition: transform 0.1s;
+            touch-action: none;
         }
-        .card:hover { border-color: var(--primary); background: #f0f7ff; }
         .card:active { cursor: grabbing; }
+        .sortable-ghost { opacity: 0.4; background: #cbd5e1; }
 
         .rank-badge {
             background: var(--primary); color: white; border-radius: 6px;
@@ -84,7 +87,7 @@
             font-size: 0.95rem; font-weight: 700; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex: 1;
         }
 
-        /* 팝업 모달 */
+        /* 모달 팝업 */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:1000;
@@ -144,7 +147,7 @@
 
                 <input type="date" id="opt-date" class="inline-input"> 까지
 
-                <input type="text" id="opt-space" class="inline-input" placeholder="업무 공간 (예: 스튜디오)" style="width:160px;"> 에서
+                <input type="text" id="opt-space" class="inline-input" placeholder="업무 공간" style="width:160px;"> 에서
 
                 <select id="opt-target" class="inline-select"></select>
                 <button class="btn-add-opt" onclick="addOption('target')">+추가</button>
@@ -163,12 +166,12 @@
 
         <!-- PAGE 2: 아이젠하워 매트릭스 -->
         <div id="p2" class="page">
-            <h2 style="margin-bottom:1rem;">🎯 아이젠하워 매트릭스 (우선순위 자동 밀림 정렬)</h2>
+            <h2 style="margin-bottom:1rem;">🎯 아이젠하워 매트릭스 (터치/마우스 순위 자동 밀림 정렬)</h2>
             <div class="grid-2x2">
-                <div class="drop-zone" id="matrix-Q1"><h3>🔥 1사분면 (즉시 실행)</h3></div>
-                <div class="drop-zone" id="matrix-Q2"><h3>🎯 2사분면 (계획/시스템)</h3></div>
-                <div class="drop-zone" id="matrix-Q3"><h3>🤝 3사분면 (위임/지원)</h3></div>
-                <div class="drop-zone" id="matrix-Q4"><h3>🧹 4사분면 (정리/최소화)</h3></div>
+                <div class="drop-zone"><h3>🔥 1사분면 (즉시 실행)</h3><div class="card-list" id="matrix-Q1"></div></div>
+                <div class="drop-zone"><h3>🎯 2사분면 (계획/시스템)</h3><div class="card-list" id="matrix-Q2"></div></div>
+                <div class="drop-zone"><h3>🤝 3사분면 (위임/지원)</h3><div class="card-list" id="matrix-Q3"></div></div>
+                <div class="drop-zone"><h3>🧹 4사분면 (정리/최소화)</h3><div class="card-list" id="matrix-Q4"></div></div>
             </div>
         </div>
 
@@ -176,16 +179,16 @@
         <div id="p3" class="page">
             <h2 style="margin-bottom:1rem;">📋 업무 진행 칸반 보드</h2>
             <div class="grid-4col">
-                <div class="drop-zone" id="kanban-todo"><h3>📝 진행 전</h3></div>
-                <div class="drop-zone" id="kanban-ing"><h3>🔥 진행 중</h3></div>
-                <div class="drop-zone" id="kanban-check"><h3>👀 점검</h3></div>
-                <div class="drop-zone" id="kanban-done"><h3>✅ 완료</h3></div>
+                <div class="drop-zone"><h3>📝 진행 전</h3><div class="card-list" id="kanban-todo"></div></div>
+                <div class="drop-zone"><h3>🔥 진행 중</h3><div class="card-list" id="kanban-ing"></div></div>
+                <div class="drop-zone"><h3>👀 점검</h3><div class="card-list" id="kanban-check"></div></div>
+                <div class="drop-zone"><h3>✅ 완료</h3><div class="card-list" id="kanban-done"></div></div>
             </div>
         </div>
 
         <!-- PAGE 4: 팀원 업무 부하 현황 -->
         <div id="p4" class="page">
-            <h2 style="margin-bottom:1rem;">📊 팀원별 할당 및 업무 부하 지수 (책임자 + 관련자 포함)</h2>
+            <h2 style="margin-bottom:1rem;">📊 팀원별 할당 및 업무 부하 지수 (책임자 + 관련자)</h2>
             <div id="member-load-container"></div>
         </div>
 
@@ -196,7 +199,7 @@
         </div>
     </main>
 
-    <!-- 카드 상세보기 팝업 모달 -->
+    <!-- 모달 -->
     <div class="modal-overlay" id="task-modal">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -214,7 +217,7 @@
         };
 
         let tasks = [];
-        let draggedTaskId = null;
+        let sortableInstances = [];
 
         function initSelects() {
             ['who', 'type', 'how', 'target'].forEach(key => {
@@ -250,9 +253,9 @@
             const type = document.getElementById('opt-type').value;
             const how = document.getElementById('opt-how').value;
             const date = document.getElementById('opt-date').value;
-            const space = document.getElementById('opt-space').value || '기본 공간';
+            const space = document.getElementById('opt-space').value || '스튜디오';
             const target = document.getElementById('opt-target').value;
-            const result = document.getElementById('opt-result').value || '목표 달성';
+            const result = document.getElementById('opt-result').value || '업무 완료';
 
             const fullTitle = `${who}이(가) ${type}을(를) ${how} 방식으로 ${date}까지 ${space}에서 ${target}와(과) 함께 ${result}을(를) 완료한다.`;
 
@@ -261,23 +264,19 @@
             else if(how === '외부 위임') matrix = 'Q3';
             else matrix = 'Q1';
 
-            // 사분면 내 기존 카드 개수 파악 후 맨 뒤 순위로 추가
-            const qTasks = tasks.filter(t => t.matrix === matrix);
-            const rank = qTasks.length + 1;
-
             const sameTasks = tasks.filter(t => t.type === type);
 
             const newTask = {
-                id: Date.now(),
+                id: String(Date.now()),
                 who, type, how, date, space, target, result, fullTitle,
-                matrix, rank,
+                matrix,
                 kanban: 'todo',
                 runCount: sameTasks.length + 1,
                 kpt: { k: '', p: '', t: '' }
             };
 
             tasks.push(newTask);
-            alert('업무가 새로 생성되었습니다!');
+            alert('업무가 새로 등록되었습니다!');
             renderAll();
             switchTab('p2');
         }
@@ -292,49 +291,65 @@
             renderAll();
         }
 
-        /* 스마트 드래그 & 드롭 engine (순위 자동 재정렬) */
-        function bindDragEvents() {
-            document.querySelectorAll('.drop-zone').forEach(zone => {
-                zone.ondragover = e => { e.preventDefault(); zone.classList.add('drag-over'); };
-                zone.ondragleave = () => zone.classList.remove('drag-over');
-                zone.ondrop = e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    if (!draggedTaskId) return;
+        /* 터치 & PC 겸용 드래그 앤 드롭 바인딩 */
+        function initSortable() {
+            sortableInstances.forEach(inst => inst.destroy());
+            sortableInstances = [];
 
-                    const zoneId = zone.id; // 예: matrix-Q1, kanban-todo
-                    const [type, dest] = zoneId.split('-');
-                    const task = tasks.find(t => t.id == draggedTaskId);
-
-                    if (!task) return;
-
-                    if (type === 'matrix') {
-                        const targetCard = e.target.closest('.card');
-                        let targetRank = 1;
-
-                        const destTasks = tasks.filter(t => t.matrix === dest && t.id !== task.id)
-                                               .sort((a,b) => a.rank - b.rank);
-
-                        if (targetCard) {
-                            const targetId = targetCard.dataset.id;
-                            const tTask = tasks.find(t => t.id == targetId);
-                            if (tTask) targetRank = tTask.rank;
-                        } else {
-                            targetRank = destTasks.length + 1;
-                        }
-
-                        // 순위 밀림 재정렬 알고리즘
-                        task.matrix = dest;
-                        destTasks.splice(targetRank - 1, 0, task);
-                        destTasks.forEach((t, idx) => { t.rank = idx + 1; });
-
-                    } else if (type === 'kanban') {
-                        task.kanban = dest;
+            // 1. 매트릭스 드래그 설정 (사분면 이동 및 순위 밀림 자동 정렬)
+            ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
+                const el = document.getElementById(`matrix-${q}`);
+                if (!el) return;
+                
+                const s = new Sortable(el, {
+                    group: 'matrix-group',
+                    animation: 150,
+                    delay: 50, // 태블릿 터치 구분용
+                    delayOnTouchOnly: true,
+                    onEnd: function () {
+                        // 드래그 종료 후 순위 자동 업데이트
+                        ['Q1', 'Q2', 'Q3', 'Q4'].forEach(mKey => {
+                            const container = document.getElementById(`matrix-${mKey}`);
+                            const cardNodes = container.querySelectorAll('.card');
+                            cardNodes.forEach((node, index) => {
+                                const id = node.dataset.id;
+                                const task = tasks.find(t => t.id === id);
+                                if (task) {
+                                    task.matrix = mKey;
+                                    task.rank = index + 1; // 1순위부터 차례대로 밀림
+                                }
+                            });
+                        });
+                        renderAll();
                     }
+                });
+                sortableInstances.push(s);
+            });
 
-                    draggedTaskId = null;
-                    renderAll();
-                };
+            // 2. 칸반 보드 드래그 설정
+            ['todo', 'ing', 'check', 'done'].forEach(k => {
+                const el = document.getElementById(`kanban-${k}`);
+                if (!el) return;
+
+                const s = new Sortable(el, {
+                    group: 'kanban-group',
+                    animation: 150,
+                    delay: 50,
+                    delayOnTouchOnly: true,
+                    onEnd: function () {
+                        ['todo', 'ing', 'check', 'done'].forEach(kKey => {
+                            const container = document.getElementById(`kanban-${kKey}`);
+                            const cardNodes = container.querySelectorAll('.card');
+                            cardNodes.forEach(node => {
+                                const id = node.dataset.id;
+                                const task = tasks.find(t => t.id === id);
+                                if (task) task.kanban = kKey;
+                            });
+                        });
+                        renderAll();
+                    }
+                });
+                sortableInstances.push(s);
             });
         }
 
@@ -343,42 +358,37 @@
             renderKanban();
             renderLoad();
             renderTracker();
-            bindDragEvents();
-        }
-
-        function buildCardHtml(task, showRank = true) {
-            return `
-                <div class="card" draggable="true" data-id="${task.id}" 
-                     ondragstart="draggedTaskId=${task.id}" 
-                     onclick="openModal(${task.id})">
-                    ${showRank ? `<div class="rank-badge">${task.rank}</div>` : ''}
-                    <div class="card-title-text">[${task.type}] ${task.result}</div>
-                </div>
-            `;
+            initSortable();
         }
 
         function renderMatrix() {
             ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
                 const zone = document.getElementById(`matrix-${q}`);
-                const title = zone.querySelector('h3').outerHTML;
+                const qTasks = tasks.filter(t => t.matrix === q);
                 
-                // 순위별 정렬
-                const qTasks = tasks.filter(t => t.matrix === q).sort((a,b) => a.rank - b.rank);
-                zone.innerHTML = title + qTasks.map(t => buildCardHtml(t, true)).join('');
+                // 순위가 할당 안된 기본 상태 고려
+                qTasks.forEach((t, i) => { if(!t.rank) t.rank = i + 1; });
+                qTasks.sort((a,b) => a.rank - b.rank);
+
+                zone.innerHTML = qTasks.map(t => `
+                    <div class="card" data-id="${t.id}" onclick="openModal('${t.id}')">
+                        <div class="rank-badge">${t.rank}</div>
+                        <div class="card-title-text">[${t.type}] ${t.result}</div>
+                    </div>
+                `).join('');
             });
         }
 
         function renderKanban() {
             ['todo', 'ing', 'check', 'done'].forEach(k => {
                 const zone = document.getElementById(`kanban-${k}`);
-                const title = zone.querySelector('h3').outerHTML;
                 const kTasks = tasks.filter(t => t.kanban === k);
 
-                zone.innerHTML = title + kTasks.map(t => `
-                    <div class="card" draggable="true" data-id="${t.id}" ondragstart="draggedTaskId=${t.id}" onclick="openModal(${t.id})">
+                zone.innerHTML = kTasks.map(t => `
+                    <div class="card" data-id="${t.id}" onclick="openModal('${t.id}')">
                         <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span class="rank-badge" style="font-size:0.75rem; width:auto; padding:2px 6px;">${t.matrix}-${t.rank}순위</span>
+                            <div style="display:flex; justify-style:space-between; justify-content:space-between; align-items:center;">
+                                <span class="rank-badge" style="font-size:0.75rem; width:auto; padding:2px 6px;">${t.matrix}-${t.rank || 1}순위</span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">👤 ${t.who}</span>
                             </div>
                             <div class="card-title-text" style="white-space:normal;">${t.fullTitle}</div>
@@ -393,7 +403,6 @@
             container.innerHTML = '';
 
             options.who.forEach(member => {
-                // 책임자(who) 또는 관련자(target)로 지정된 업무 모두 포함
                 const mTasks = tasks.filter(t => t.who === member || t.target === member);
                 const ingTasks = mTasks.filter(t => t.kanban === 'ing' || t.kanban === 'check');
                 const loadScore = Math.min(mTasks.length * 20, 100);
@@ -424,7 +433,7 @@
                     <div style="background:white; border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1rem;">
                         <div style="display:flex; justify-content:space-between;">
                             <div style="font-weight:bold;">${task.fullTitle}</div>
-                            <span style="font-size:0.8rem; background:#eff6ff; color:var(--primary); padding:2px 8px; border-radius:4px; font-weight:bold;">${task.matrix} - ${task.rank}순위</span>
+                            <span style="font-size:0.8rem; background:#eff6ff; color:var(--primary); padding:2px 8px; border-radius:4px; font-weight:bold;">${task.matrix} - ${task.rank || 1}순위</span>
                         </div>
                         <div style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 8px 0;">책임자: ${task.who} | 관련자: ${task.target} | 반복 실행: ${task.runCount}회차</div>
                         
@@ -432,15 +441,15 @@
                         <div class="kpt-grid">
                             <div class="kpt-box">
                                 <b style="color:green; font-size:0.8rem;">Keep (잘한 점)</b>
-                                <textarea placeholder="지속할 점..." onchange="saveKpt(${task.id}, 'k', this.value)">${task.kpt.k}</textarea>
+                                <textarea placeholder="지속할 점..." onchange="saveKpt('${task.id}', 'k', this.value)">${task.kpt.k}</textarea>
                             </div>
                             <div class="kpt-box">
                                 <b style="color:red; font-size:0.8rem;">Problem (문제점)</b>
-                                <textarea placeholder="개선할 문제..." onchange="saveKpt(${task.id}, 'p', this.value)">${task.kpt.p}</textarea>
+                                <textarea placeholder="개선할 문제..." onchange="saveKpt('${task.id}', 'p', this.value)">${task.kpt.p}</textarea>
                             </div>
                             <div class="kpt-box">
                                 <b style="color:blue; font-size:0.8rem;">Try (시도할 점)</b>
-                                <textarea placeholder="다음 시도..." onchange="saveKpt(${task.id}, 't', this.value)">${task.kpt.t}</textarea>
+                                <textarea placeholder="다음 시도..." onchange="saveKpt('${task.id}', 't', this.value)">${task.kpt.t}</textarea>
                             </div>
                         </div>
                     </div>
@@ -452,7 +461,7 @@
             const task = tasks.find(t => t.id === id);
             if(!task) return;
 
-            document.getElementById('modal-title').innerText = `📌 [우선순위: ${task.matrix} - ${task.rank}순위]`;
+            document.getElementById('modal-title').innerText = `📌 [우선순위: ${task.matrix} - ${task.rank || 1}순위]`;
             document.getElementById('modal-body').innerHTML = `
                 <p><b>완성된 업무 문장:</b><br>${task.fullTitle}</p><hr style="margin:10px 0; border:none; border-top:1px solid #eee;">
                 <p><b>책임자:</b> ${task.who}</p>
@@ -475,7 +484,7 @@
 
         window.onload = function() {
             initSelects();
-            bindDragEvents();
+            renderAll();
         };
     </script>
 </body>
