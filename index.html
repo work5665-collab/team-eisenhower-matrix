@@ -3,968 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>팀 아이젠하워 매트릭스 & 업무 네이밍 시스템</title>
+    <title>팀 대시보드 & 멤버 커맨드 센터</title>
     <style>
         :root {
-            --bg-main: #f4f6f9;
+            --bg-main: #f8fafc;
             --surface: #ffffff;
             --border: #e2e8f0;
-            --text-primary: #1e293b;
+            --text-primary: #0f172a;
             --text-muted: #64748b;
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
-            --q1-color: #ef4444;
-            --q1-bg: #fef2f2;
-            --q1-border: #fca5a5;
-            --q2-color: #2563eb;
-            --q2-bg: #eff6ff;
-            --q2-border: #bfdbfe;
-            --q3-color: #f59e0b;
-            --q3-bg: #fffbeb;
-            --q3-border: #fde68a;
-            --q4-color: #10b981;
-            --q4-bg: #ecfdf5;
-            --q4-border: #a7f3d0;
-            --radius: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-primary); display: flex; flex-direction: column; min-height: 100vh; }
 
         header {
             background-color: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: 0 2rem;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            padding: 0 2rem; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
         }
 
-        .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        nav {
-            display: flex;
-            gap: 8px;
-        }
+        .logo { font-size: 1.2rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        nav { display: flex; gap: 8px; }
 
         .nav-btn {
-            padding: 8px 16px;
-            border-radius: var(--radius);
-            border: none;
-            background: transparent;
-            color: var(--text-muted);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            padding: 8px 16px; border-radius: var(--radius); border: none;
+            background: transparent; color: var(--text-muted); font-weight: 600;
+            font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
         }
+        .nav-btn:hover { background-color: var(--bg-main); color: var(--text-primary); }
+        .nav-btn.active { background-color: var(--primary); color: #fff; }
 
-        .nav-btn:hover {
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-        }
+        main { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; margin: 0 auto; }
+        .page { display: none; }
+        .page.active { display: block; }
 
-        .nav-btn.active {
-            background-color: var(--primary);
-            color: #ffffff;
-        }
+        .page-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .page-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
 
-        main {
-            flex: 1;
-            padding: 2rem;
-            max-width: 1400px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        .page-header {
-            margin-bottom: 1.5rem;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .page-desc {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .form-grid {
+        /* 팀원 카드 그리드 스타일 */
+        .member-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
         }
 
-        @media (max-width: 900px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card-box {
+        .member-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 1.5rem;
-            box-shadow: var(--shadow);
-        }
-
-        .card-box h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-            color: var(--primary);
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 0.35rem;
-            color: var(--text-primary);
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            border-color: var(--primary);
-        }
-
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .preview-box {
-            background-color: #f8fafc;
-            border: 1px dashed var(--primary);
-            border-radius: var(--radius);
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-
-        .preview-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-        }
-
-        .preview-result {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            word-break: keep-all;
-            line-height: 1.4;
-        }
-
-        .quadrant-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            margin-top: 0.5rem;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            font-weight: 700;
             cursor: pointer;
-            margin-top: 1rem;
-            transition: background 0.2s;
-        }
-
-        .btn-submit:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .matrix-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            padding: 1rem;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
         }
 
-        .stat-card .num {
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-top: 0.2rem;
+        .member-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
         }
 
-        .matrix-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            min-height: 600px;
-        }
-
-        @media (max-width: 900px) {
-            .matrix-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .quadrant {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 1.25rem;
-            border: 2px solid var(--border);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .quadrant.q1 { border-color: var(--q1-border); background: var(--q1-bg); }
-        .quadrant.q2 { border-color: var(--q2-border); background: var(--q2-bg); }
-        .quadrant.q3 { border-color: var(--q3-border); background: var(--q3-bg); }
-        .quadrant.q4 { border-color: var(--q4-border); background: var(--q4-bg); }
-
-        .quadrant-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .avatar {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: #dbeafe; color: var(--primary);
+            font-size: 1.8rem; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
             margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
         }
 
-        .quadrant-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .member-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .member-role { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
+        
+        .member-stats {
+            display: flex; justify-content: space-around; width: 100%;
+            padding-top: 1rem; border-top: 1px solid var(--border);
+            font-size: 0.85rem; color: var(--text-muted);
         }
 
-        .q1 .quadrant-title { color: var(--q1-color); }
-        .q2 .quadrant-title { color: var(--q2-color); }
-        .q3 .quadrant-title { color: var(--q3-color); }
-        .q4 .quadrant-title { color: var(--q4-color); }
+        /* 칸반 보드 스타일 */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
 
-        .task-list {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            overflow-y: auto;
+        @media (max-width: 900px) { .kanban-board { grid-template-columns: 1fr; } }
+
+        .kanban-col {
+            background: #f1f5f9;
+            border-radius: var(--radius);
+            padding: 1rem;
+            min-height: 500px;
+        }
+
+        .kanban-title {
+            font-size: 1rem; font-weight: 700; margin-bottom: 1rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
         .task-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 8px;
             padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
-        }
+        .task-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; }
+        .task-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 0.5rem; }
 
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 0.5rem;
+        .back-btn {
+            background: none; border: 1px solid var(--border);
+            padding: 6px 12px; border-radius: 6px; cursor: pointer;
+            font-weight: 600; margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 4px;
         }
+        .back-btn:hover { background: #e2e8f0; }
 
-        .task-name {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.3;
+        .tag {
+            padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
         }
-
-        .task-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
-        }
-
-        .meta-tag {
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .task-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 0.75rem;
-            padding-top: 0.5rem;
-            border-top: 1px solid #f1f5f9;
-            justify-content: flex-end;
-        }
-
-        .action-btn {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            background: #f1f5f9;
-            color: var(--text-primary);
-        }
-
-        .action-btn.btn-delete:hover {
-            background: #fef2f2;
-            color: #ef4444;
-            border-color: #fca5a5;
-        }
-
-        .action-btn.btn-complete {
-            background: #ecfdf5;
-            color: #10b981;
-            border-color: #a7f3d0;
-        }
-
-        .schedule-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 900px) {
-            .schedule-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        th {
-            background-color: #f8fafc;
-            font-weight: 700;
-            color: var(--text-muted);
-        }
-
-        .status-badge {
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-
-        .status-badge.pending { background: #fef3c7; color: #d97706; }
-        .status-badge.completed { background: #d1fae5; color: #059669; }
+        .tag-q1 { background: #fef2f2; color: #ef4444; }
+        .tag-q2 { background: #eff6ff; color: #2563eb; }
+        .tag-q3 { background: #fffbeb; color: #f59e0b; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M12 3v18M3 12h18"/></svg>
-            팀 아이젠하워 커맨드 센터
-        </div>
+        <div class="logo">⚡ TEAM DASHBOARD</div>
         <nav>
-            <button class="nav-btn active" onclick="switchTab('page-input')">1. 업무 개념화/등록</button>
-            <button class="nav-btn" onclick="switchTab('page-matrix')">2. 4분면 매트릭스</button>
-            <button class="nav-btn" onclick="switchTab('page-schedule')">3. 업무 타임라인/스케줄</button>
+            <button class="nav-btn active" onclick="switchTab('page-members')">👥 팀원 카드 목록</button>
+            <button class="nav-btn" onclick="switchTab('page-kanban-all')">📋 전체 칸반 보드</button>
         </nav>
     </header>
 
     <main>
-        <div id="page-input" class="page active">
-            <div class="page-header">
-                <h1 class="page-title">업무 개념화 및 자동 매트릭스 분류</h1>
-                <p class="page-desc">6하원칙과 판단 요소 기반으로 표준화된 업무명을 생성하고, 자동으로 최적의 사분면에 배치합니다.</p>
-            </div>
+        <!-- 1. 메인: 팀원 카드 리스트 페이지 -->
+        <div id="page-members" class="page active">
+            <h1 class="page-title">팀원 프로필 & 프로젝트</h1>
+            <p class="page-desc">팀원 카드를 클릭하면 해당 팀원에게 따로 할당된 프로젝트와 전용 칸반 보드를 확인할 수 있습니다.</p>
 
-            <div class="form-grid">
-                <div class="card-box">
-                    <h3>✍️ 업무 6하원칙 개념화 프레임워크</h3>
-                    <form id="taskForm" onsubmit="handleAddTask(event)">
-                        <div class="form-group">
-                            <label>목적/대상 (What/Why) - 무엇을 왜 하나요?</label>
-                            <input type="text" id="inputWhat" placeholder="예: 촬영용 카메라 장비 점검" required oninput="updatePreview()">
-                        </div>
-
-                        <div class="row-2">
-                            <div class="form-group">
-                                <label>책임자 (Who - Action)</label>
-                                <input type="text" id="inputWho" placeholder="예: 김촬영" required oninput="updatePreview()">
-                            </div>
-                            <div class="form-group">
-                                <label>대상/피교육자 (Who - Target)</label>
-                                <input type="text" id="inputTarget" placeholder="예: 박신입 (없으면 생략)" oninput="updatePreview()">
-                            </div>
-                        </div>
-
-                        <div class="row-2">
-                            <div class="form-group">
-                                <label>업무 성격 (How)</label>
-                                <select id="inputHow" onchange="updatePreview()">
-                                    <option value="직접 실행">직접 실행 (Do)</option>
-                                    <option value="교육/노하우 전수">교육 및 노하우 전수 (Train)</option>
-                                    <option value="외부/타인 위임">타인 위임 (Delegate)</option>
-                                    <option value="매뉴얼/시스템화">매뉴얼 작성/자동화 (Systemize)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>전문성 및 위임 가능 여부</label>
-                                <select id="inputSkill" onchange="updatePreview()">
-                                    <option value="high">팀 내 특정 전문가만 가능 (위임 불가)</option>
-                                    <option value="low">가이드가 있으면 누구나 가능 (위임 가능)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row-2">
-                            <div class="form-group">
-                                <label>마감일 (When)</label>
-                                <input type="date" id="inputDueDate" required onchange="updatePreview()">
-                            </div>
-                            <div class="form-group">
-                                <label>준비물/소품 (Where/Equipment)</label>
-                                <input type="text" id="inputPrep" placeholder="예: 체크리스트, SD카드" oninput="updatePreview()">
-                            </div>
-                        </div>
-
-                        <div class="preview-box">
-                            <div class="preview-title">자동 생성된 표준 업무명</div>
-                            <div class="preview-result" id="namedResult">[업무명이 여기에 생성됩니다]</div>
-                            <div id="badgeContainer"></div>
-                        </div>
-
-                        <button type="submit" class="btn-submit">🚀 매트릭스에 업무 등록하기</button>
-                    </form>
+            <div class="member-grid">
+                <div class="member-card" onclick="openMemberProfile('김촬영', '메인 PD / 영상 제작')">
+                    <div class="avatar">김</div>
+                    <div class="member-name">김촬영</div>
+                    <div class="member-role">메인 PD / 영상 제작</div>
+                    <div class="member-stats">
+                        <span>진행중 <b>3</b></span>
+                        <span>완료 <b>8</b></span>
+                    </div>
                 </div>
 
-                <div class="card-box" style="background: #fafcfd;">
-                    <h3>💡 자동 사분면 판정 가이드라인</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
-                        시스템이 판단하는 업무 배치의 표준 알고리즘 규칙입니다:
-                    </p>
-                    <ul style="font-size: 0.88rem; line-height: 1.8; padding-left: 1.2rem; color: #334155;">
-                        <li><strong>제1사분면 (즉시 실행):</strong> 전문성이 필요하며 위임할 수 없고, 마감이 3일 이내인 급박한 핵심 작업.</li>
-                        <li><strong>제2사분면 (스케줄링/투자):</strong> 팀원의 <strong>교육, 매뉴얼화, 시스템 구축, 정기 점검</strong> 등 미래 병목을 제거하는 장기적 중요 업무.</li>
-                        <li><strong>제3사분면 (위임/부담 경감):</strong> 마감은 임박했으나 가이드/체크리스트가 있어 누구나 수행 가능한 업무 (구매, 단순 준비 등).</li>
-                        <li><strong>제4사분면 (삭제/최소화):</strong> 긴급하지도 않고 목적성이 모호한 비효율성/단순 잡무.</li>
-                    </ul>
+                <div class="member-card" onclick="openMemberProfile('이조연출', '조연출 / 소품 담당')">
+                    <div class="avatar" style="background:#fef3c7; color:#d97706;">이</div>
+                    <div class="member-name">이조연출</div>
+                    <div class="member-role">조연출 / 소품 및 현장 관리</div>
+                    <div class="member-stats">
+                        <span>진행중 <b>2</b></span>
+                        <span>완료 <b>5</b></span>
+                    </div>
+                </div>
 
-                    <div style="margin-top: 1.5rem; padding: 1rem; background: #eff6ff; border-radius: var(--radius); border: 1px solid #bfdbfe;">
-                        <strong style="color: #1e40af; font-size: 0.9rem;">📌 자주 쓰는 템플릿 복사 (클릭 시 자동 입력)</strong>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-                            <button type="button" class="action-btn" onclick="applyTemplate('equip_train')">+ 장비 점검 교육 템플릿</button>
-                            <button type="button" class="action-btn" onclick="applyTemplate('prop_buy')">+ 촬영 소품 구매 템플릿</button>
-                            <button type="button" class="action-btn" onclick="applyTemplate('shoot_plan')">+ 2주 뒤 촬영 기획 템플릿</button>
-                        </div>
+                <div class="member-card" onclick="openMemberProfile('박신입', '신입 에디터')">
+                    <div class="avatar" style="background:#dcfce7; color:#15803d;">박</div>
+                    <div class="member-name">박신입</div>
+                    <div class="member-role">신입 에디터 / 편집 수련 중</div>
+                    <div class="member-stats">
+                        <span>진행중 <b>1</b></span>
+                        <span>완료 <b>2</b></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="page-matrix" class="page">
-            <div class="page-header">
-                <h1 class="page-title">팀 아이젠하워 4분면 매트릭스</h1>
-                <p class="page-desc">팀 전체 업무의 병목을 파악하고, 교육과 시스템 구축(2사분면)을 통해 1사분면을 줄여나갑니다.</p>
-            </div>
-
-            <div class="matrix-stats">
-                <div class="stat-card" style="border-top: 4px solid var(--q1-color);">
-                    <div style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">1사분면 (긴급+중요)</div>
-                    <div class="num" id="count-q1" style="color:var(--q1-color);">0</div>
-                </div>
-                <div class="stat-card" style="border-top: 4px solid var(--q2-color);">
-                    <div style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">2사분면 (중요 / 교육&시스템)</div>
-                    <div class="num" id="count-q2" style="color:var(--q2-color);">0</div>
-                </div>
-                <div class="stat-card" style="border-top: 4px solid var(--q3-color);">
-                    <div style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">3사분면 (위임/단순급무)</div>
-                    <div class="num" id="count-q3" style="color:var(--q3-color);">0</div>
-                </div>
-                <div class="stat-card" style="border-top: 4px solid var(--q4-color);">
-                    <div style="font-size:0.85rem; color:var(--text-muted); font-weight:700;">4사분면 (삭제/정리)</div>
-                    <div class="num" id="count-q4" style="color:var(--q4-color);">0</div>
+        <!-- 2. 상세: 팀원 개별 상세 및 전용 칸반 페이지 -->
+        <div id="page-member-detail" class="page">
+            <button class="back-btn" onclick="switchTab('page-members')">← 팀원 목록으로 돌아가기</button>
+            
+            <div style="display:flex; align-items:center; gap:1rem; margin-bottom: 2rem; background:white; padding:1.5rem; border-radius:var(--radius); border:1px solid var(--border);">
+                <div class="avatar" id="detail-avatar" style="margin:0;">김</div>
+                <div>
+                    <h1 class="page-title" id="detail-name" style="margin:0;">김촬영</h1>
+                    <p id="detail-role" style="color:var(--text-muted); font-size:0.95rem;">메인 PD</p>
                 </div>
             </div>
 
-            <div class="matrix-container">
-                <div class="quadrant q1">
-                    <div class="quadrant-header">
-                        <span class="quadrant-title">🔥 1사분면: 즉시 실행 (Do Now)</span>
-                        <span style="font-size:0.8rem; font-weight:700; color:var(--q1-color);">위기 관리 및 전문 업무</span>
-                    </div>
-                    <div class="task-list" id="list-q1"></div>
+            <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:1rem;">📌 담당 프로젝트 및 개인 칸반 보드</h2>
+            
+            <div class="kanban-board">
+                <div class="kanban-col">
+                    <div class="kanban-title">📝 할 일 (To Do) <span id="cnt-todo">0</span></div>
+                    <div id="list-todo"></div>
                 </div>
-
-                <div class="quadrant q2">
-                    <div class="quadrant-header">
-                        <span class="quadrant-title">🎯 2사분면: 계획 & 교육 (Schedule/Invest)</span>
-                        <span style="font-size:0.8rem; font-weight:700; color:var(--q2-color);">팀 역량 증대 및 예방</span>
-                    </div>
-                    <div class="task-list" id="list-q2"></div>
+                <div class="kanban-col">
+                    <div class="kanban-title">🔥 진행 중 (In Progress) <span id="cnt-ing">0</span></div>
+                    <div id="list-ing"></div>
                 </div>
-
-                <div class="quadrant q3">
-                    <div class="quadrant-header">
-                        <span class="quadrant-title">🤝 3사분면: 타인 위임 (Delegate)</span>
-                        <span style="font-size:0.8rem; font-weight:700; color:var(--q3-color);">체크리스트 기반 매뉴얼 수행</span>
-                    </div>
-                    <div class="task-list" id="list-q3"></div>
-                </div>
-
-                <div class="quadrant q4">
-                    <div class="quadrant-header">
-                        <span class="quadrant-title">🧹 4사분면: 최소화/제거 (Eliminate)</span>
-                        <span style="font-size:0.8rem; font-weight:700; color:var(--q4-color);">불필요 루틴 단축</span>
-                    </div>
-                    <div class="task-list" id="list-q4"></div>
+                <div class="kanban-col">
+                    <div class="kanban-title">✅ 완료 (Done) <span id="cnt-done">0</span></div>
+                    <div id="list-done"></div>
                 </div>
             </div>
         </div>
 
-        <div id="page-schedule" class="page">
-            <div class="page-header">
-                <h1 class="page-title">업무 스케줄 및 타임라인 추적기</h1>
-                <p class="page-desc">경과 시간 및 마감 임박 여부를 실시간으로 모니터링하고 반복 업무를 효율적으로 관리합니다.</p>
-            </div>
-
-            <div class="schedule-grid">
-                <div class="card-box">
-                    <h3>📅 전체 업무 진행 및 경과시간 레포트</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>상태</th>
-                                    <th>업무명</th>
-                                    <th>담당자 / 피교육자</th>
-                                    <th>사분면</th>
-                                    <th>마감일</th>
-                                    <th>경과/남은시간</th>
-                                    <th>관리</th>
-                                </tr>
-                            </thead>
-                            <tbody id="scheduleTableBody">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card-box">
-                    <h3>🔄 자주 반복되는 업무 템플릿</h3>
-                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom: 1rem;">
-                        자주 반복되는 촬영/점검 업무는 원클릭 복사로 신속하게 스케줄에 추가하세요.
-                    </p>
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <div style="padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius); background:#f8fafc;">
-                            <strong style="font-size:0.9rem;">🎥 정기 촬영 장비 완충 및 캐리어 세팅</strong>
-                            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">매주 반복 · 위임 가능 업무</div>
-                            <button class="action-btn" style="margin-top:8px; width:100%;" onclick="quickDuplicate('정기 촬영 장비 완충 및 캐리어 세팅', '김촬영', '', '직접 실행', 'low', 2, '충전기, 메인 캐리어')">➕ 이 업무 스케줄에 복사 등록</button>
-                        </div>
-                        <div style="padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius); background:#f8fafc;">
-                            <strong style="font-size:0.9rem;">📋 현장 소품 최종 체크리스트 작성</strong>
-                            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">촬영 2일 전 · 위임 가능 업무</div>
-                            <button class="action-btn" style="margin-top:8px; width:100%;" onclick="quickDuplicate('현장 소품 최종 체크리스트 작성', '이조연출', '', '직접 실행', 'low', 1, '노션 체크리스트')">➕ 이 업무 스케줄에 복사 등록</button>
-                        </div>
-                    </div>
-                </div>
+        <!-- 3. 전체 칸반 보드 페이지 -->
+        <div id="page-kanban-all" class="page">
+            <h1 class="page-title">전체 팀 업무 칸반 보드</h1>
+            <p class="page-desc">모든 팀원의 업무 진행 상태를 한눈에 파악합니다.</p>
+            <div class="kanban-board" id="all-kanban">
+                <!-- 전체 칸반 로직이 들어감 -->
             </div>
         </div>
     </main>
 
     <script>
-        let tasks = [
-            {
-                id: 1,
-                namedTitle: "[교육/전수] 박신입 대상 촬영 장비 점검 교육 및 매뉴얼 전달",
-                what: "촬영 장비 점검 교육",
-                who: "김촬영",
-                target: "박신입",
-                how: "교육/노하우 전수",
-                skill: "high",
-                dueDate: "2026-07-30",
-                prep: "장비 매뉴얼, 체크리스트",
-                quadrant: "Q2",
-                createdAt: new Date().toISOString(),
-                completed: false
-            },
-            {
-                id: 2,
-                namedTitle: "[구매/준비] 3일 뒤 촬영용 소품(조명 건전지) 구입",
-                what: "촬영용 소품 구입",
-                who: "이조연출",
-                target: "",
-                how: "외부/타인 위임",
-                skill: "low",
-                dueDate: "2026-07-27",
-                prep: "법인카드, 소품 리스트",
-                quadrant: "Q3",
-                createdAt: new Date().toISOString(),
-                completed: false
-            }
-        ];
+        // 샘플 데이터 (각 팀원에게 할당된 업무)
+        const memberTasks = {
+            '김촬영': [
+                { id: 1, title: '메인 카메라 및 렌즈 점검', status: 'todo', priority: 'Q2', date: '2026-07-30' },
+                { id: 2, title: '8월 신규 콘텐츠 기획안 작성', status: 'ing', priority: 'Q1', date: '2026-07-28' },
+                { id: 3, title: '지난주 촬영 본 편집 검수', status: 'done', priority: 'Q2', date: '2026-07-24' }
+            ],
+            '이조연출': [
+                { id: 4, title: '현장 소품 및 건전지 세팅', status: 'ing', priority: 'Q3', date: '2026-07-27' },
+                { id: 5, title: '스튜디오 대여 일정 예약', status: 'done', priority: 'Q1', date: '2026-07-25' }
+            ],
+            '박신입': [
+                { id: 6, title: '장비점검 체크리스트 교육 이수', status: 'ing', priority: 'Q2', date: '2026-07-29' }
+            ]
+        };
+
+        let currentMember = '';
 
         function switchTab(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
             document.getElementById(pageId).classList.add('active');
-            
-            const btnIndex = pageId === 'page-input' ? 0 : pageId === 'page-matrix' ? 1 : 2;
-            document.querySelectorAll('.nav-btn')[btnIndex].classList.add('active');
 
-            if(pageId === 'page-matrix') renderMatrix();
-            if(pageId === 'page-schedule') renderSchedule();
-        }
-
-        function computeTaskData() {
-            const what = document.getElementById('inputWhat').value.trim() || '미정 업무';
-            const who = document.getElementById('inputWho').value.trim() || '담당자 미정';
-            const target = document.getElementById('inputTarget').value.trim();
-            const how = document.getElementById('inputHow').value;
-            const skill = document.getElementById('inputSkill').value;
-            const dueDate = document.getElementById('inputDueDate').value;
-
-            let namedTitle = "";
-            if (how === "교육/노하우 전수") {
-                namedTitle = `[교육/전수] ${target ? target + ' 대상 ' : ''}${what} 교육 및 노하우 전달`;
-            } else if (how === "매뉴얼/시스템화") {
-                namedTitle = `[시스템화] ${what} 표준 매뉴얼 작성 및 프로세스 구축`;
-            } else if (how === "외부/타인 위임") {
-                namedTitle = `[위임/지원] ${what}`;
-            } else {
-                namedTitle = `[직접실행] ${what}`;
+            if(pageId === 'page-members') {
+                document.querySelectorAll('.nav-btn')[0].classList.add('active');
+            } else if(pageId === 'page-kanban-all') {
+                document.querySelectorAll('.nav-btn')[1].classList.add('active');
+                renderAllKanban();
             }
-
-            let quadrant = "Q2";
-            
-            let daysLeft = 999;
-            if (dueDate) {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const due = new Date(dueDate);
-                daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            }
-
-            if (how === "교육/노하우 전수" || how === "매뉴얼/시스템화") {
-                quadrant = "Q2";
-            } else if (skill === "high" && daysLeft <= 3) {
-                quadrant = "Q1";
-            } else if (skill === "high" && daysLeft > 3) {
-                quadrant = "Q2";
-            } else if (skill === "low" && daysLeft <= 5) {
-                quadrant = "Q3";
-            } else {
-                quadrant = "Q4";
-            }
-
-            return { namedTitle, quadrant, daysLeft };
         }
 
-        function updatePreview() {
-            const { namedTitle, quadrant } = computeTaskData();
-            document.getElementById('namedResult').innerText = namedTitle;
+        function openMemberProfile(name, role) {
+            currentMember = name;
+            document.getElementById('detail-name').innerText = name;
+            document.getElementById('detail-role').innerText = role;
+            document.getElementById('detail-avatar').innerText = name[0];
 
-            const badgeContainer = document.getElementById('badgeContainer');
-            const colorMap = {
-                'Q1': 'background:var(--q1-bg); color:var(--q1-color); border:1px solid var(--q1-border);',
-                'Q2': 'background:var(--q2-bg); color:var(--q2-color); border:1px solid var(--q2-border);',
-                'Q3': 'background:var(--q3-bg); color:var(--q3-color); border:1px solid var(--q3-border);',
-                'Q4': 'background:var(--q4-bg); color:var(--q4-color); border:1px solid var(--q4-border);'
-            };
-            const labelMap = {
-                'Q1': '자동 판정: 제1사분면 (즉시 실행 - 중요O / 긴급O)',
-                'Q2': '자동 판정: 제2사분면 (스케줄링/교육 - 중요O / 긴급X)',
-                'Q3': '자동 판정: 제3사분면 (위임 가능 - 중요X / 긴급O)',
-                'Q4': '자동 판정: 제4사분면 (최소화 - 중요X / 긴급X)'
-            };
-
-            badgeContainer.innerHTML = `<span class="quadrant-badge" style="${colorMap[quadrant]}">${labelMap[quadrant]}</span>`;
+            renderMemberKanban(name);
+            switchTab('page-member-detail');
         }
 
-        function handleAddTask(e) {
-            e.preventDefault();
-            const { namedTitle, quadrant } = computeTaskData();
+        function renderMemberKanban(name) {
+            const tasks = memberTasks[name] || [];
 
-            const newTask = {
-                id: Date.now(),
-                namedTitle,
-                what: document.getElementById('inputWhat').value.trim(),
-                who: document.getElementById('inputWho').value.trim(),
-                target: document.getElementById('inputTarget').value.trim(),
-                how: document.getElementById('inputHow').value,
-                skill: document.getElementById('inputSkill').value,
-                dueDate: document.getElementById('inputDueDate').value,
-                prep: document.getElementById('inputPrep').value.trim(),
-                quadrant,
-                createdAt: new Date().toISOString(),
-                completed: false
-            };
+            const todoList = document.getElementById('list-todo');
+            const ingList = document.getElementById('list-ing');
+            const doneList = document.getElementById('list-done');
 
-            tasks.push(newTask);
-            alert('업무가 성공적으로 생성 및 배치되었습니다!');
-            document.getElementById('taskForm').reset();
-            updatePreview();
-            switchTab('page-matrix');
-        }
+            todoList.innerHTML = ''; ingList.innerHTML = ''; doneList.innerHTML = '';
 
-        function applyTemplate(type) {
-            const today = new Date();
-            const formatDate = (d) => d.toISOString().split('T')[0];
-
-            if(type === 'equip_train') {
-                document.getElementById('inputWhat').value = "촬영 장비 기본 점검 및 세팅 노하우 전수";
-                document.getElementById('inputWho').value = "김촬영";
-                document.getElementById('inputTarget').value = "박신입";
-                document.getElementById('inputHow').value = "교육/노하우 전수";
-                document.getElementById('inputSkill').value = "high";
-                today.setDate(today.getDate() + 5);
-                document.getElementById('inputDueDate').value = formatDate(today);
-                document.getElementById('inputPrep').value = "장비 점검 체크리스트, 메인 카메라";
-            } else if(type === 'prop_buy') {
-                document.getElementById('inputWhat').value = "촬영 소품(건전지, 테이프) 구매";
-                document.getElementById('inputWho').value = "이조연출";
-                document.getElementById('inputTarget').value = "";
-                document.getElementById('inputHow').value = "외부/타인 위임";
-                document.getElementById('inputSkill').value = "low";
-                today.setDate(today.getDate() + 2);
-                document.getElementById('inputDueDate').value = formatDate(today);
-                document.getElementById('inputPrep').value = "법인카드";
-            } else if(type === 'shoot_plan') {
-                document.getElementById('inputWhat').value = "2주 뒤 메인 촬영 스케줄 및 씬 콘티 기획";
-                document.getElementById('inputWho').value = "최감독";
-                document.getElementById('inputTarget').value = "";
-                document.getElementById('inputHow').value = "직접 실행";
-                document.getElementById('inputSkill').value = "high";
-                today.setDate(today.getDate() + 14);
-                document.getElementById('inputDueDate').value = formatDate(today);
-                document.getElementById('inputPrep').value = "시나리오, 기획안 안";
-            }
-            updatePreview();
-        }
-
-        function renderMatrix() {
-            const lists = {
-                Q1: document.getElementById('list-q1'),
-                Q2: document.getElementById('list-q2'),
-                Q3: document.getElementById('list-q3'),
-                Q4: document.getElementById('list-q4')
-            };
-
-            Object.values(lists).forEach(l => l.innerHTML = '');
-
-            const counts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
-
-            tasks.filter(t => !t.completed).forEach(task => {
-                counts[task.quadrant]++;
-                const card = document.createElement('div');
-                card.className = 'task-card';
-
-                const targetText = task.target ? ` ➔ 피교육자: ${task.target}` : '';
-                const prepText = task.prep ? `🎒 준비물: ${task.prep}` : '';
-
-                card.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-name">${task.namedTitle}</div>
-                    </div>
-                    <div class="task-meta">
-                        <span class="meta-tag">👤 책임자: ${task.who}${targetText}</span>
-                        <span class="meta-tag">📅 마감: ${task.dueDate}</span>
-                        ${prepText ? `<span class="meta-tag">${prepText}</span>` : ''}
-                    </div>
-                    <div class="task-actions">
-                        <button class="action-btn" onclick="duplicateTask(${task.id})">📋 복사</button>
-                        <button class="action-btn btn-complete" onclick="toggleComplete(${task.id})">✓ 완료</button>
-                        <button class="action-btn btn-delete" onclick="deleteTask(${task.id})">삭제</button>
-                    </div>
-                `;
-                lists[task.quadrant].appendChild(card);
-            });
-
-            document.getElementById('count-q1').innerText = counts.Q1;
-            document.getElementById('count-q2').innerText = counts.Q2;
-            document.getElementById('count-q3').innerText = counts.Q3;
-            document.getElementById('count-q4').innerText = counts.Q4;
-        }
-
-        function renderSchedule() {
-            const tbody = document.getElementById('scheduleTableBody');
-            tbody.innerHTML = '';
+            let cTodo = 0, cIng = 0, cDone = 0;
 
             tasks.forEach(task => {
-                const tr = document.createElement('tr');
-                const createdDate = new Date(task.createdAt);
-                const now = new Date();
-                const hoursElapsed = Math.floor((now - createdDate) / (1000 * 60 * 60));
-                
-                const due = new Date(task.dueDate);
-                const daysRemaining = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-
-                let timeStatus = "";
-                if(daysRemaining < 0) {
-                    timeStatus = `<span style="color:#ef4444; font-weight:bold;">${Math.abs(daysRemaining)}일 지연됨</span>`;
-                } else if(daysRemaining === 0) {
-                    timeStatus = `<span style="color:#ef4444; font-weight:bold;">오늘 마감</span>`;
-                } else {
-                    timeStatus = `${daysRemaining}일 남음 (등록후 ${hoursElapsed}시간 경과)`;
-                }
-
-                const whoDisplay = task.target ? `${task.who} (교육자) ➔ ${task.target} (피교육자)` : task.who;
-
-                tr.innerHTML = `
-                    <td><span class="status-badge ${task.completed ? 'completed' : 'pending'}">${task.completed ? '완료' : '진행중'}</span></td>
-                    <td style="font-weight:600;">${task.namedTitle}</td>
-                    <td>${whoDisplay}</td>
-                    <td><strong>${task.quadrant}</strong></td>
-                    <td>${task.dueDate}</td>
-                    <td style="font-size:0.85rem;">${timeStatus}</td>
-                    <td>
-                        <button class="action-btn" onclick="duplicateTask(${task.id})">복사</button>
-                        <button class="action-btn btn-delete" onclick="deleteTask(${task.id})">삭제</button>
-                    </td>
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.innerHTML = `
+                    <div class="task-title">${task.title}</div>
+                    <div class="task-meta">
+                        <span class="tag tag-${task.priority.toLowerCase()}">${task.priority} 사분면</span>
+                        <span>📅 ${task.date}</span>
+                    </div>
                 `;
-                tbody.appendChild(tr);
+
+                if(task.status === 'todo') { todoList.appendChild(card); cTodo++; }
+                else if(task.status === 'ing') { ingList.appendChild(card); cIng++; }
+                else if(task.status === 'done') { doneList.appendChild(card); cDone++; }
+            });
+
+            document.getElementById('cnt-todo').innerText = cTodo;
+            document.getElementById('cnt-ing').innerText = cIng;
+            document.getElementById('cnt-done').innerText = cDone;
+        }
+
+        function renderAllKanban() {
+            const container = document.getElementById('all-kanban');
+            container.innerHTML = `
+                <div class="kanban-col"><div class="kanban-title">📝 전체 할 일</div><div id="all-todo"></div></div>
+                <div class="kanban-col"><div class="kanban-title">🔥 전체 진행 중</div><div id="all-ing"></div></div>
+                <div class="kanban-col"><div class="kanban-title">✅ 전체 완료</div><div id="all-done"></div></div>
+            `;
+
+            Object.keys(memberTasks).forEach(member => {
+                memberTasks[member].forEach(task => {
+                    const card = document.createElement('div');
+                    card.className = 'task-card';
+                    card.innerHTML = `
+                        <div style="font-size:0.75rem; color:var(--primary); font-weight:700; margin-bottom:4px;">👤 ${member}</div>
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-meta">
+                            <span class="tag tag-${task.priority.toLowerCase()}">${task.priority} 사분면</span>
+                            <span>📅 ${task.date}</span>
+                        </div>
+                    `;
+                    if(task.status === 'todo') document.getElementById('all-todo').appendChild(card);
+                    if(task.status === 'ing') document.getElementById('all-ing').appendChild(card);
+                    if(task.status === 'done') document.getElementById('all-done').appendChild(card);
+                });
             });
         }
-
-        function duplicateTask(id) {
-            const t = tasks.find(item => item.id === id);
-            if(t) {
-                const newTask = { ...t, id: Date.now(), namedTitle: t.namedTitle + ' (복사본)', createdAt: new Date().toISOString() };
-                tasks.push(newTask);
-                alert('업무가 복사되었습니다!');
-                renderMatrix();
-                renderSchedule();
-            }
-        }
-
-        function quickDuplicate(what, who, target, how, skill, daysFromNow, prep) {
-            const due = new Date();
-            due.setDate(due.getDate() + daysFromNow);
-            const dueDateStr = due.toISOString().split('T')[0];
-
-            let namedTitle = `[루틴] ${what}`;
-            const newTask = {
-                id: Date.now(),
-                namedTitle,
-                what, who, target, how, skill,
-                dueDate: dueDateStr,
-                prep,
-                quadrant: "Q3",
-                createdAt: new Date().toISOString(),
-                completed: false
-            };
-
-            tasks.push(newTask);
-            alert('자주 반복되는 업무가 스케줄에 추가되었습니다!');
-            renderSchedule();
-        }
-
-        function toggleComplete(id) {
-            const t = tasks.find(item => item.id === id);
-            if(t) {
-                t.completed = !t.completed;
-                renderMatrix();
-                renderSchedule();
-            }
-        }
-
-        function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            renderMatrix();
-            renderSchedule();
-        }
-
-        window.onload = function() {
-            const defaultDate = new Date();
-            defaultDate.setDate(defaultDate.getDate() + 3);
-            document.getElementById('inputDueDate').value = defaultDate.toISOString().split('T')[0];
-            updatePreview();
-        };
     </script>
 </body>
 </html>
