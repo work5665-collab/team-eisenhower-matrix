@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>팀 통합 커맨드 센터</title>
-    <!-- 터치 & PC 통합 드래그앤드롭 라이브러리 (SortableJS) -->
+    <!-- 터치 & PC 통합 드래그앤드롭 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root {
@@ -63,9 +63,13 @@
 
         .drop-zone {
             background: #f1f5f9; border-radius: var(--radius); border: 2px dashed var(--border);
-            padding: 1rem; min-height: 250px;
+            padding: 1rem; min-height: 250px; display: flex; flex-direction: column;
         }
-        .card-list { min-height: 180px; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+
+        /* [핵심 수정 1] 드롭 타겟 영역 확충 */
+        .card-list {
+            flex: 1; min-height: 200px; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; padding-bottom: 20px;
+        }
 
         /* 간소화된 슬림 카드 */
         .card {
@@ -75,7 +79,7 @@
             touch-action: none;
         }
         .card:active { cursor: grabbing; }
-        .sortable-ghost { opacity: 0.4; background: #cbd5e1; }
+        .sortable-ghost { opacity: 0.3; background: #cbd5e1; border: 2px dashed var(--primary); }
 
         .rank-badge {
             background: var(--primary); color: white; border-radius: 6px;
@@ -86,6 +90,13 @@
         .card-title-text {
             font-size: 0.95rem; font-weight: 700; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; flex: 1;
         }
+
+        /* 상세보기 버튼 */
+        .btn-detail {
+            background: #f1f5f9; border: 1px solid var(--border); padding: 4px 8px;
+            border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; color: var(--text-muted);
+        }
+        .btn-detail:hover { background: var(--primary); color: white; }
 
         /* 모달 팝업 */
         .modal-overlay {
@@ -291,65 +302,65 @@
             renderAll();
         }
 
-        /* 터치 & PC 겸용 드래그 앤 드롭 바인딩 */
+        /* [핵심 수정 2] Sortable 드래그 engine 안정화 */
         function initSortable() {
             sortableInstances.forEach(inst => inst.destroy());
             sortableInstances = [];
 
-            // 1. 매트릭스 드래그 설정 (사분면 이동 및 순위 밀림 자동 정렬)
+            const sortableOptions = {
+                animation: 150,
+                fallbackOnBody: true,
+                swapThreshold: 0.65,
+                filter: '.btn-detail', // 버튼 누를 땐 드래그 제외
+                preventOnFilter: false,
+                onEnd: function () {
+                    // 드래그가 끝나면 DOM 순서 그대로 데이터 갱신
+                    ['Q1', 'Q2', 'Q3', 'Q4'].forEach(mKey => {
+                        const container = document.getElementById(`matrix-${mKey}`);
+                        if(!container) return;
+                        const cardNodes = container.querySelectorAll('.card');
+                        cardNodes.forEach((node, index) => {
+                            const id = node.dataset.id;
+                            const task = tasks.find(t => t.id === id);
+                            if (task) {
+                                task.matrix = mKey;
+                                task.rank = index + 1; // 위치에 따라 1, 2, 3... 자동 할당
+                            }
+                        });
+                    });
+
+                    ['todo', 'ing', 'check', 'done'].forEach(kKey => {
+                        const container = document.getElementById(`kanban-${kKey}`);
+                        if(!container) return;
+                        const cardNodes = container.querySelectorAll('.card');
+                        cardNodes.forEach(node => {
+                            const id = node.dataset.id;
+                            const task = tasks.find(t => t.id === id);
+                            if (task) task.kanban = kKey;
+                        });
+                    });
+
+                    // 드롭 반영 후 다시 랜더링
+                    renderAll();
+                }
+            };
+
+            // 1. 매트릭스 간 이동 그룹
             ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
                 const el = document.getElementById(`matrix-${q}`);
-                if (!el) return;
-                
-                const s = new Sortable(el, {
-                    group: 'matrix-group',
-                    animation: 150,
-                    delay: 50, // 태블릿 터치 구분용
-                    delayOnTouchOnly: true,
-                    onEnd: function () {
-                        // 드래그 종료 후 순위 자동 업데이트
-                        ['Q1', 'Q2', 'Q3', 'Q4'].forEach(mKey => {
-                            const container = document.getElementById(`matrix-${mKey}`);
-                            const cardNodes = container.querySelectorAll('.card');
-                            cardNodes.forEach((node, index) => {
-                                const id = node.dataset.id;
-                                const task = tasks.find(t => t.id === id);
-                                if (task) {
-                                    task.matrix = mKey;
-                                    task.rank = index + 1; // 1순위부터 차례대로 밀림
-                                }
-                            });
-                        });
-                        renderAll();
-                    }
-                });
-                sortableInstances.push(s);
+                if (el) {
+                    const s = new Sortable(el, { ...sortableOptions, group: 'matrix-group' });
+                    sortableInstances.push(s);
+                }
             });
 
-            // 2. 칸반 보드 드래그 설정
+            // 2. 칸반 간 이동 그룹
             ['todo', 'ing', 'check', 'done'].forEach(k => {
                 const el = document.getElementById(`kanban-${k}`);
-                if (!el) return;
-
-                const s = new Sortable(el, {
-                    group: 'kanban-group',
-                    animation: 150,
-                    delay: 50,
-                    delayOnTouchOnly: true,
-                    onEnd: function () {
-                        ['todo', 'ing', 'check', 'done'].forEach(kKey => {
-                            const container = document.getElementById(`kanban-${kKey}`);
-                            const cardNodes = container.querySelectorAll('.card');
-                            cardNodes.forEach(node => {
-                                const id = node.dataset.id;
-                                const task = tasks.find(t => t.id === id);
-                                if (task) task.kanban = kKey;
-                            });
-                        });
-                        renderAll();
-                    }
-                });
-                sortableInstances.push(s);
+                if (el) {
+                    const s = new Sortable(el, { ...sortableOptions, group: 'kanban-group' });
+                    sortableInstances.push(s);
+                }
             });
         }
 
@@ -361,19 +372,20 @@
             initSortable();
         }
 
+        /* [핵심 수정 3] 카드 렌더링 시 클릭 이벤트 분리 */
         function renderMatrix() {
             ['Q1', 'Q2', 'Q3', 'Q4'].forEach(q => {
                 const zone = document.getElementById(`matrix-${q}`);
                 const qTasks = tasks.filter(t => t.matrix === q);
                 
-                // 순위가 할당 안된 기본 상태 고려
                 qTasks.forEach((t, i) => { if(!t.rank) t.rank = i + 1; });
                 qTasks.sort((a,b) => a.rank - b.rank);
 
                 zone.innerHTML = qTasks.map(t => `
-                    <div class="card" data-id="${t.id}" onclick="openModal('${t.id}')">
+                    <div class="card" data-id="${t.id}">
                         <div class="rank-badge">${t.rank}</div>
                         <div class="card-title-text">[${t.type}] ${t.result}</div>
+                        <button class="btn-detail" onclick="openModal('${t.id}')">보기</button>
                     </div>
                 `).join('');
             });
@@ -385,13 +397,16 @@
                 const kTasks = tasks.filter(t => t.kanban === k);
 
                 zone.innerHTML = kTasks.map(t => `
-                    <div class="card" data-id="${t.id}" onclick="openModal('${t.id}')">
+                    <div class="card" data-id="${t.id}">
                         <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
-                            <div style="display:flex; justify-style:space-between; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <span class="rank-badge" style="font-size:0.75rem; width:auto; padding:2px 6px;">${t.matrix}-${t.rank || 1}순위</span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">👤 ${t.who}</span>
                             </div>
-                            <div class="card-title-text" style="white-space:normal;">${t.fullTitle}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <div class="card-title-text" style="white-space:normal;">${t.fullTitle}</div>
+                                <button class="btn-detail" onclick="openModal('${t.id}')">보기</button>
+                            </div>
                         </div>
                     </div>
                 `).join('');
